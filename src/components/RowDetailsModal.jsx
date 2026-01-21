@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styles from "./RowDetailsModal.module.css";
 
 function prettyVol(v) {
@@ -35,11 +35,12 @@ function reasonText(reason) {
       "Модификаторы (zero/без сахара/light/безлактозный/…) не совпали",
     CANONICAL_KEY_DIFF:
       "Ключевые слова (canonical key) различаются при совпавших фичах",
+    MANUAL_OK: "Подтверждено вручную (override)",
   };
   return map[reason] || reason;
 }
 
-export default function RowDetailsModal({ row, onClose }) {
+export default function RowDetailsModal({ row, onClose, onUpdateRow }) {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -49,6 +50,28 @@ export default function RowDetailsModal({ row, onClose }) {
   }, [onClose]);
 
   if (!row) return null;
+
+  const [editMode, setEditMode] = useState(false);
+  const [editedOk, setEditedOk] = useState(Boolean(row.ok));
+  const [editedReason, setEditedReason] = useState(row.manual_reason || "");
+
+  useEffect(() => {
+    setEditMode(false);
+    setEditedOk(Boolean(row.ok));
+    setEditedReason(row.manual_reason || "");
+  }, [row]);
+
+  const saveEdit = () => {
+    if (!onUpdateRow) return;
+
+    onUpdateRow(row.id, {
+      ok: editedOk,
+      manual_ok: true,
+      manual_reason: editedReason.trim(),
+    });
+
+    setEditMode(false);
+  };
 
   const d = row.__details;
   const src = d?.source;
@@ -77,6 +100,32 @@ export default function RowDetailsModal({ row, onClose }) {
 
   const keyMismatch = (src?.canonicalKey || "") !== (tgt?.canonicalKey || "");
 
+  const toggleManualOk = () => {
+    if (!onUpdateRow) return;
+
+    const nextManual = !row.manual_ok;
+
+    const nextOk = nextManual ? true : row.strict_ok; // если сняли ручное подтверждение — вернём strict_ok
+    const nextReasonsArr = new Set(
+      row.__reasonsArr ||
+        String(row.reasons || "")
+          .split("|")
+          .filter(Boolean),
+    );
+
+    if (nextManual) nextReasonsArr.add("MANUAL_OK");
+    else nextReasonsArr.delete("MANUAL_OK");
+
+    const reasonsStr = Array.from(nextReasonsArr).join("|");
+
+    onUpdateRow(row.id, {
+      manual_ok: nextManual,
+      ok: nextOk,
+      reasons: reasonsStr,
+      __reasonsArr: Array.from(nextReasonsArr),
+    });
+  };
+
   return (
     <div
       className={styles.backdrop}
@@ -89,6 +138,17 @@ export default function RowDetailsModal({ row, onClose }) {
           <div className={styles.title}>
             Детали маппинга: <span className={styles.mono}>{row.id}</span>
           </div>
+
+          {!editMode ? (
+            <button className={styles.action} onClick={() => setEditMode(true)}>
+              Редактировать
+            </button>
+          ) : (
+            <button className={styles.actionPrimary} onClick={saveEdit}>
+              Сохранить
+            </button>
+          )}
+
           <button className={styles.close} onClick={onClose} aria-label="Close">
             ✕
           </button>
@@ -97,10 +157,22 @@ export default function RowDetailsModal({ row, onClose }) {
         <div className={styles.meta}>
           <div className={styles.metaRow}>
             <span className={styles.label}>Итог:</span>{" "}
-            <span className={row.ok ? styles.ok : styles.fail}>
-              {row.ok ? "OK" : "FAIL"}
-            </span>
+            {!editMode ? (
+              <span className={row.ok ? styles.ok : styles.fail}>
+                {row.ok ? "TRUE" : "FALSE"}
+              </span>
+            ) : (
+              <select
+                className={styles.select}
+                value={editedOk ? "true" : "false"}
+                onChange={(e) => setEditedOk(e.target.value === "true")}
+              >
+                <option value="true">TRUE</option>
+                <option value="false">FALSE</option>
+              </select>
+            )}
           </div>
+
           <div className={styles.metaRow}>
             <span className={styles.label}>feature_ok:</span>{" "}
             {String(row.feature_ok)} •{" "}
@@ -135,6 +207,21 @@ export default function RowDetailsModal({ row, onClose }) {
             </div>
           ))}
         </div>
+
+        {sectionTitle("Ручная причина")}
+        {!editMode ? (
+          <div className={styles.manualReason}>
+            {row.manual_reason ? row.manual_reason : "—"}
+          </div>
+        ) : (
+          <textarea
+            className={styles.reasonInput}
+            rows={4}
+            placeholder="Введите причину вручную (на русском)"
+            value={editedReason}
+            onChange={(e) => setEditedReason(e.target.value)}
+          />
+        )}
 
         {sectionTitle("Сравнение признаков")}
         <div className={styles.grid}>

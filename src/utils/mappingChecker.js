@@ -2,7 +2,7 @@ export const DEFAULT_CONFIG = {
   requireTokenJaccardForStrict: false,
   tokenJaccardMinForStrict: 0.92,
   countNoMatchAsFail: true,
-  strictUnitConsistency: true, 
+  strictUnitConsistency: true,
 };
 
 const FLAVORS = [
@@ -46,16 +46,25 @@ function tokenize(s) {
   let t = String(s)
     .toLowerCase()
     .replace(/ё/g, "е")
+    // 2,5 -> 2.5
     .replace(/(\d),(\d)/g, "$1.$2");
 
+  // КЛЮЧЕВОЕ: разлепляем "400гр" -> "400 гр", "925мл" -> "925 мл", "1л" -> "1 л"
+  // Делать ДО нормализации единиц.
   t = t
-    .replace(/(\d)\s*(л|l|литр|литра|литров)\b/gi, "$1 л")
-    .replace(/(\d)\s*(мл|ml)\b/gi, "$1 мл")
-    .replace(/(\d)\s*(г|гр|грамм|грамма|граммов|g|gram)\b/gi, "$1 г")
-    .replace(/(\d)\s*(кг|kg)\b/gi, "$1 кг")
-    .replace(/(\d)\s*(%|процента|процентов)\b/gi, "$1 %")
-    .replace(/(\d)\s*(шт|штук|pcs|piece)\b/gi, "$1 шт");
+    .replace(/(\d+(?:[.,]\d+)?)([a-zа-я]+)/gi, "$1 $2")
+    .replace(/([a-zа-я]+)(\d+(?:[.,]\d+)?)/gi, "$1 $2"); // на всякий случай (редко)
 
+  // Нормализация "число + единица" -> "число <каноническая_единица>"
+  t = t
+    .replace(/(\d+(?:[.,]\d+)?)\s*(л|l|литр|литра|литров)\b/gi, "$1 л")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(мл|ml)\b/gi, "$1 мл")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(кг|kg)\b/gi, "$1 кг")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(г|гр|грамм|грамма|граммов|g|gram)\b/gi, "$1 г")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(%|процента|процентов)\b/gi, "$1 %")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(шт|штук|pcs|piece)\b/gi, "$1 шт");
+
+  // Сохраняем десятичные точки
   t = t.replace(/(\d)\.(\d)/g, "$1__DOT__$2");
 
   t = t
@@ -67,17 +76,20 @@ function tokenize(s) {
     .replace(/__DOT__/g, ".");
 
   const tokens = t.split(" ").filter(Boolean);
-  
+
   return tokens.filter(w => !STOPWORDS.has(w));
 }
 
 function canonicalKey(text) {
   const toks = tokenize(text)
     .filter(t => !DROP_TOKENS.has(t))
-    .filter(t => !/^\d+(\.\d+)?$/.test(t)) 
-    .filter(t => !/^\d+%$/.test(t)); 
+    .filter(t => !/^\d+(\.\d+)?$/.test(t))
+    .filter(t => !/^\d+%$/.test(t))
+    .filter(t => !/^\d+(\.\d+)?(г|гр|кг|мл|л|шт|%)$/.test(t));
+
   return toks.sort().join(" ");
 }
+
 
 function extractVolumeOrWeight(text) {
   const raw = String(text ?? "")
@@ -138,16 +150,16 @@ function extractUnitOnly(text) {
   if (/\bкг\b/.test(s) || /\bkg\b/.test(s)) return "kg_only";
   if (/\bшт\b/.test(s) || /\bштук\b/.test(s)) return "pcs_only";
   if (/\bуп\b/.test(s) || /\bупак\b/.test(s) || /\bупаковк/.test(s)) return "pack_only";
-  
+
   return null;
 }
 
 // Новая функция: определение типа продукта по единице измерения
 function getProductType(text) {
   if (!text) return "unknown";
-  
+
   const s = String(text).toLowerCase().replace(/ё/g, "е");
-  
+
   // Проверяем в порядке приоритета
   if (/\b(кг|kg)\b/.test(s)) return "weight";
   if (/\b(г|гр|грамм|g)\b/.test(s)) return "weight";
@@ -155,7 +167,7 @@ function getProductType(text) {
   if (/\b(ml|мл)\b/.test(s)) return "volume";
   if (/\b(шт|штук|pcs|piece)\b/.test(s)) return "pcs";
   if (/\b(уп|упак|pack|упаковк)\b/.test(s)) return "pack";
-  
+
   return "unknown";
 }
 
@@ -163,6 +175,37 @@ function getProductType(text) {
 function hasExplicitUnit(text) {
   return getProductType(text) !== "unknown";
 }
+
+function buildDetails(sourceName, targetName, srcProductType, tgtProductType) {
+  return {
+    source: {
+      title: sourceName ?? "",
+      volumeOrWeight: extractVolumeOrWeight(sourceName),
+      percent: extractPercent(sourceName),
+      unitOnly: extractUnitOnly(sourceName),
+      productType: srcProductType,
+      hasExplicitUnit: srcProductType !== "unknown",
+      flavor: extractFlavor(sourceName),
+      modifiers: extractModifiers(sourceName),
+      canonicalKey: canonicalKey(sourceName),
+      tokens: tokenize(sourceName),
+    },
+    target: {
+      title: targetName ?? "",
+      volumeOrWeight: extractVolumeOrWeight(targetName),
+      percent: extractPercent(targetName),
+      unitOnly: extractUnitOnly(targetName),
+      productType: tgtProductType,
+      hasExplicitUnit: tgtProductType !== "unknown",
+      flavor: extractFlavor(targetName),
+      modifiers: extractModifiers(targetName),
+      canonicalKey: canonicalKey(targetName),
+      tokens: tokenize(targetName),
+    },
+    tokenJaccard: 0,
+  };
+}
+
 
 function canonicalFlavor(f) {
   if (f.startsWith("клубнич")) return "клубника";
@@ -197,18 +240,19 @@ function jaccard(aArr, bArr) {
 export function checkMapping(sourceName, targetName, config = DEFAULT_CONFIG) {
   const reasons = [];
 
+  const srcProductType = getProductType(sourceName);
+  const tgtProductType = getProductType(targetName);
+
   // Базовые проверки
   if (!targetName || String(targetName).trim() === "") {
     reasons.push("NO_MATCH_TITLE");
-    return { feature_ok: false, strict_ok: false, reasons, tokenJaccard: 0, details: null };
+    const details = buildDetails(sourceName, targetName, srcProductType, tgtProductType);
+    // tokenJaccard оставим 0, потому что match отсутствует
+    return { feature_ok: false, strict_ok: false, reasons, tokenJaccard: 0, details };
   }
 
-  // РАННЯЯ ПРОВЕРКА ЕДИНИЦ ИЗМЕРЕНИЯ (самое важное!)
-  const srcProductType = getProductType(sourceName);
-  const tgtProductType = getProductType(targetName);
-  
   let feature_ok = true;
-  
+
   // ГЛАВНОЕ ПРАВИЛО: если в источнике есть единица измерения, а в цели нет - ОШИБКА
   if (config.strictUnitConsistency) {
     if (srcProductType !== "unknown" && tgtProductType === "unknown") {
@@ -223,44 +267,18 @@ export function checkMapping(sourceName, targetName, config = DEFAULT_CONFIG) {
   }
 
   // Подготавливаем детали для остальных проверок
-  const details = {
-    source: {
-      title: sourceName ?? "",
-      volumeOrWeight: extractVolumeOrWeight(sourceName),
-      percent: extractPercent(sourceName),
-      unitOnly: extractUnitOnly(sourceName),
-      productType: srcProductType,
-      hasExplicitUnit: srcProductType !== "unknown",
-      flavor: extractFlavor(sourceName),
-      modifiers: extractModifiers(sourceName),
-      canonicalKey: canonicalKey(sourceName),
-      tokens: tokenize(sourceName),
-    },
-    target: {
-      title: targetName ?? "",
-      volumeOrWeight: extractVolumeOrWeight(targetName),
-      percent: extractPercent(targetName),
-      unitOnly: extractUnitOnly(targetName),
-      productType: tgtProductType,
-      hasExplicitUnit: tgtProductType !== "unknown",
-      flavor: extractFlavor(targetName),
-      modifiers: extractModifiers(targetName),
-      canonicalKey: canonicalKey(targetName),
-      tokens: tokenize(targetName),
-    },
-    tokenJaccard: 0,
-  };
+  const details = buildDetails(sourceName, targetName, srcProductType, tgtProductType);
 
   // Если уже есть ошибка с единицами, пропускаем некоторые детальные проверки
   if (!feature_ok && reasons.includes("UNIT_MISSING_IN_TARGET")) {
     // Все равно вычисляем Jaccard и canonical key для информации
     const jac = jaccard(details.source.tokens, details.target.tokens);
     details.tokenJaccard = jac;
-    
+
     const srcKey = details.source.canonicalKey;
     const tgtKey = details.target.canonicalKey;
-    const strict_ok = false; 
-    
+    const strict_ok = false; // Из-за ошибки единиц строгая проверка всегда false
+
     return { feature_ok, strict_ok, reasons, tokenJaccard: jac, details };
   }
 
@@ -399,6 +417,7 @@ export function summarize(rows) {
   return { total, ok, fail };
 }
 
+// Дополнительная функция для отладки
 export function debugProductTypes(rows) {
   return rows.map(row => ({
     title: row.title,
@@ -410,3 +429,21 @@ export function debugProductTypes(rows) {
     hasError: getProductType(row.title) !== "unknown" && getProductType(row.matched_csv_title) === "unknown"
   }));
 }
+
+export const REASON_LABELS = {
+  BEST_MATCH_NO_MATCH: "Лучший матч: не найдено совпадение",
+  NO_MATCH_TITLE: "Нет названия совпадения (matched пустой)",
+  CANONICAL_KEY_DIFF: "Ключевые слова отличаются (canonical key)",
+  UNIT_MISSING_IN_TARGET: "В цели отсутствует единица измерения",
+  UNIT_TYPE_MISMATCH: "Единицы измерения разного типа (вес/объем/шт/уп)",
+  VOLUME_MISSING_ONE_SIDE: "Отсутствует объём/вес у одной из сторон",
+  VOLUME_MISMATCH: "Объём/вес не совпадает",
+  UNIT_ONLY_MISSING_ONE_SIDE: "Единица (только тип) указана лишь у одной стороны",
+  UNIT_ONLY_MISMATCH: "Единица (только тип) не совпадает",
+  PERCENT_MISSING_ONE_SIDE: "Процент указан лишь у одной стороны",
+  PERCENT_MISMATCH: "Процент не совпадает",
+  FLAVOR_MISSING_ONE_SIDE: "Вкус указан лишь у одной стороны",
+  FLAVOR_MISMATCH: "Вкус не совпадает",
+  MODIFIER_MISMATCH: "Модификаторы (без сахара/zero/…) не совпадают",
+  MANUAL_OK: "Подтверждено вручную",
+};

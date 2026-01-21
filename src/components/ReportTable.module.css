@@ -186,3 +186,18 @@
 .clickableRow {
   cursor: pointer;
 }
+.topReasonsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.topReasonsBtn {
+  border: 1px solid rgba(0,0,0,0.12);
+  background: white;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.topReasonsBtn:disabled { opacity: 0.6; cursor: default; }

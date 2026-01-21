@@ -2,6 +2,7 @@
 import { useMemo, useState, useEffect } from "react";
 import styles from "./ReportTable.module.css";
 import RowDetailsModal from "./RowDetailsModal.jsx";
+import { REASON_LABELS } from "../utils/mappingChecker.js";
 
 const PAGE_SIZE = 100;
 
@@ -9,20 +10,25 @@ function pillClass(ok) {
   return ok ? `${styles.pill} ${styles.ok}` : `${styles.pill} ${styles.fail}`;
 }
 
-export default function ReportTable({ rows, reasonStats }) {
+function humanizeReasons(reasonsStr) {
+  const parts = String(reasonsStr || "")
+    .split("|")
+    .filter(Boolean);
+  return parts.map((p) => REASON_LABELS[p] || p).join(" • ");
+}
+
+export default function ReportTable({ rows, reasonStats, onUpdateRow }) {
   const [selectedRow, setSelectedRow] = useState(null);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("fail_first");
-
+  const [showAllReasons, setShowAllReasons] = useState(false);
   const [page, setPage] = useState(1);
 
   const topReasons = useMemo(() => {
-    const arr = Object.entries(reasonStats || {})
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 15);
-    return arr;
-  }, [reasonStats]);
+    const arr = Object.entries(reasonStats || {}).sort((a, b) => b[1] - a[1]);
+    return showAllReasons ? arr : arr.slice(0, 3);
+  }, [reasonStats, showAllReasons]);
 
   const filteredSorted = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -140,26 +146,36 @@ export default function ReportTable({ rows, reasonStats }) {
           <option value="ok">Только OK</option>
           <option value="feature_ok">Feature OK</option>
           <option value="strict_ok">Strict OK</option>
-          <option value="no_match">No match</option>
+          <option value="no_match">Без мапа</option>
         </select>
         <select
           className={styles.select}
           value={sort}
           onChange={(e) => setSort(e.target.value)}
         >
-          <option value="fail_first">Сначала FAIL</option>
-          <option value="ok_first">Сначала OK</option>
+          <option value="ok_first">Сначала True</option>
+          <option value="fail_first">Сначала False</option>
           <option value="jaccard_desc">Accuracy ↓</option>
           <option value="jaccard_asc">Accuracy ↑</option>
         </select>
       </div>
 
       <div className={styles.topReasons}>
-        <div className={styles.topReasonsTitle}>Top reasons</div>
+        <div className={styles.topReasonsHeader}>
+          <div className={styles.topReasonsTitle}>Top reasons</div>
+          <button
+            className={styles.topReasonsBtn}
+            onClick={() => setShowAllReasons((v) => !v)}
+            type="button"
+          >
+            {showAllReasons ? "Свернуть" : "Показать полностью"}
+          </button>
+        </div>
+
         <div className={styles.topReasonsGrid}>
           {topReasons.map(([reason, count]) => (
             <div key={reason} className={styles.reasonRow}>
-              <span className={styles.mono}>{reason}</span>
+              <span>{REASON_LABELS[reason] || reason}</span>
               <span className={styles.count}>{count}</span>
             </div>
           ))}
@@ -231,14 +247,8 @@ export default function ReportTable({ rows, reasonStats }) {
           <thead>
             <tr>
               <th>ok</th>
-              <th>feature_ok</th>
-              <th>strict_ok</th>
               <th>reasons</th>
-              <th>accuracy</th>
               <th>id</th>
-              <th>source</th>
-              <th>best_match</th>
-              <th>confidence</th>
               <th>matched_uuid</th>
               <th>title</th>
               <th>matched_csv_title</th>
@@ -253,27 +263,11 @@ export default function ReportTable({ rows, reasonStats }) {
               >
                 <td>
                   <span className={pillClass(r.ok)}>
-                    {r.ok ? "OK" : "FAIL"}
+                    {r.ok ? "True" : "False"}
                   </span>
                 </td>
-                <td>
-                  <span className={pillClass(r.feature_ok)}>
-                    {String(r.feature_ok)}
-                  </span>
-                </td>
-                <td>
-                  <span className={pillClass(r.strict_ok)}>
-                    {String(r.strict_ok)}
-                  </span>
-                </td>
-                <td className={styles.mono}>{r.reasons}</td>
-                <td className={styles.mono}>
-                  {Number(r.tokenJaccard).toFixed(3)}
-                </td>
+                <td>{humanizeReasons(r.reasons)}</td>
                 <td className={styles.mono}>{r.id}</td>
-                <td className={styles.mono}>{r.source}</td>
-                <td className={styles.mono}>{r.best_match}</td>
-                <td className={styles.mono}>{r.match_confidence}</td>
                 <td className={styles.mono}>{r.matched_uuid}</td>
                 <td>{r.title}</td>
                 <td>{r.matched_csv_title}</td>
@@ -285,6 +279,7 @@ export default function ReportTable({ rows, reasonStats }) {
           <RowDetailsModal
             row={selectedRow}
             onClose={() => setSelectedRow(null)}
+            onUpdateRow={onUpdateRow}
           />
         )}
       </div>
