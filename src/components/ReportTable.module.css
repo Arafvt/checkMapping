@@ -1,61 +1,110 @@
+/* ReportTable.module.css */
 .wrap {
   display: grid;
   gap: 12px;
 }
 
 .controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   gap: 10px;
-  flex-wrap: wrap;
   align-items: center;
 }
 
 .search {
-  flex: 1;
-  min-width: 280px;
+  min-width: 260px;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,.14);
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+  outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.search:focus {
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
 }
 
 .select {
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,.14);
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+  outline: none;
 }
 
 .topReasons {
-  border: 1px solid rgba(0,0,0,.10);
-  border-radius: 14px;
-  padding: 10px 12px;
-  background: #fafafa;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+
+.topReasonsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .topReasonsTitle {
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.topReasonsBtn {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: rgba(15, 23, 42, 0.85);
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.topReasonsBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+.topReasonsBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
 }
 
 .topReasonsGrid {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .reasonRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
   align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(248, 250, 252, 0.75);
 }
 
 .count {
-  font-weight: 700;
+  font-weight: 800;
+  color: rgba(37, 99, 235, 0.95);
 }
 
 .tableWrap {
   overflow: auto;
-  border: 1px solid rgba(0,0,0,.10);
-  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
 }
 
 .table {
@@ -64,11 +113,12 @@
   font-size: 13px;
 }
 
-.table th, .table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(0,0,0,.06);
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   vertical-align: top;
-  background: white;
+  background: transparent;
 }
 
 .table th {
@@ -76,45 +126,46 @@
   top: 0;
   z-index: 1;
   text-align: left;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  font-weight: 800;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.clickableRow {
+  cursor: pointer;
+  transition: background .12s ease;
 }
 
 .table tr:hover td {
-  background: #fbfbff;
+  background: rgba(37, 99, 235, 0.06);
 }
 
 .pill {
   display: inline-flex;
   padding: 2px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(0,0,0,.14);
+  border: 1px solid rgba(15, 23, 42, 0.12);
   font-size: 12px;
   white-space: nowrap;
+  font-weight: 700;
 }
 
 .ok {
-  background: #eaffea;
-  border-color: #b9e5b9;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.22);
+  color: rgba(21, 128, 61, 0.95);
 }
 
 .fail {
-  background: #ffecec;
-  border-color: #f3b5b5;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: rgba(185, 28, 28, 0.95);
 }
 
 .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-.limitRow {
-  padding: 10px;
-  color: rgba(0,0,0,.65);
-  background: #fafafa;
-}
-
-.footer {
-  color: rgba(0,0,0,.65);
-  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
 }
 
 .pagerBar {
@@ -132,7 +183,7 @@
 }
 
 .pagerInfo {
-  color: rgba(0,0,0,.65);
+  color: rgba(15, 23, 42, 0.60);
   font-size: 13px;
 }
 
@@ -146,14 +197,23 @@
 .pagerBtn {
   padding: 8px 10px;
   border-radius: 12px;
-  border: 1px solid rgba(0,0,0,.14);
-  background: white;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.pagerBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  border-color: rgba(37, 99, 235, 0.22);
 }
 
 .pagerBtn:disabled {
-  opacity: .5;
+  opacity: 0.55;
   cursor: default;
+  transform: none;
+  box-shadow: none;
 }
 
 .pageNums {
@@ -166,38 +226,33 @@
 .pageBtn {
   padding: 7px 10px;
   border-radius: 12px;
-  border: 1px solid rgba(0,0,0,.14);
-  background: white;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   min-width: 38px;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.pageBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  border-color: rgba(37, 99, 235, 0.22);
 }
 
 .pageBtnActive {
-  background: #0b5cff;
+  background: rgba(37, 99, 235, 0.92);
   color: white;
-  border-color: rgba(11,92,255,.35);
+  border-color: rgba(37, 99, 235, 0.20);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18);
 }
 
 .dots {
   padding: 0 6px;
-  color: rgba(0,0,0,.55);
+  color: rgba(15, 23, 42, 0.45);
 }
 
-.clickableRow {
-  cursor: pointer;
+@media (max-width: 860px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
 }
-.topReasonsHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.topReasonsBtn {
-  border: 1px solid rgba(0,0,0,0.12);
-  background: white;
-  border-radius: 10px;
-  padding: 8px 10px;
-  cursor: pointer;
-}
-.topReasonsBtn:disabled { opacity: 0.6; cursor: default; }

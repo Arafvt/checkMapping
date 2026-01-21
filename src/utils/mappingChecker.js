@@ -46,14 +46,10 @@ function tokenize(s) {
   let t = String(s)
     .toLowerCase()
     .replace(/ё/g, "е")
-    // 2,5 -> 2.5
     .replace(/(\d),(\d)/g, "$1.$2");
-
-  // КЛЮЧЕВОЕ: разлепляем "400гр" -> "400 гр", "925мл" -> "925 мл", "1л" -> "1 л"
-  // Делать ДО нормализации единиц.
   t = t
     .replace(/(\d+(?:[.,]\d+)?)([a-zа-я]+)/gi, "$1 $2")
-    .replace(/([a-zа-я]+)(\d+(?:[.,]\d+)?)/gi, "$1 $2"); // на всякий случай (редко)
+    .replace(/([a-zа-я]+)(\d+(?:[.,]\d+)?)/gi, "$1 $2"); 
 
   // Нормализация "число + единица" -> "число <каноническая_единица>"
   t = t
@@ -154,7 +150,6 @@ function extractUnitOnly(text) {
   return null;
 }
 
-// Новая функция: определение типа продукта по единице измерения
 function getProductType(text) {
   if (!text) return "unknown";
 
@@ -206,7 +201,6 @@ function buildDetails(sourceName, targetName, srcProductType, tgtProductType) {
   };
 }
 
-
 function canonicalFlavor(f) {
   if (f.startsWith("клубнич")) return "клубника";
   if (f.startsWith("яблоч")) return "яблоко";
@@ -247,7 +241,6 @@ export function checkMapping(sourceName, targetName, config = DEFAULT_CONFIG) {
   if (!targetName || String(targetName).trim() === "") {
     reasons.push("NO_MATCH_TITLE");
     const details = buildDetails(sourceName, targetName, srcProductType, tgtProductType);
-    // tokenJaccard оставим 0, потому что match отсутствует
     return { feature_ok: false, strict_ok: false, reasons, tokenJaccard: 0, details };
   }
 
@@ -269,15 +262,13 @@ export function checkMapping(sourceName, targetName, config = DEFAULT_CONFIG) {
   // Подготавливаем детали для остальных проверок
   const details = buildDetails(sourceName, targetName, srcProductType, tgtProductType);
 
-  // Если уже есть ошибка с единицами, пропускаем некоторые детальные проверки
   if (!feature_ok && reasons.includes("UNIT_MISSING_IN_TARGET")) {
-    // Все равно вычисляем Jaccard и canonical key для информации
     const jac = jaccard(details.source.tokens, details.target.tokens);
     details.tokenJaccard = jac;
 
     const srcKey = details.source.canonicalKey;
     const tgtKey = details.target.canonicalKey;
-    const strict_ok = false; // Из-за ошибки единиц строгая проверка всегда false
+    const strict_ok = false; 
 
     return { feature_ok, strict_ok, reasons, tokenJaccard: jac, details };
   }
