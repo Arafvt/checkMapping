@@ -61,9 +61,9 @@ export default function App() {
         [
           r.id,
           r.ok ? "true" : "false",
+          r.manual_reason || reasonsToRu(r.reasons),
           r.title,
           r.matched_csv_title || "",
-          r.manual_reason || reasonsToRu(r.reasons)
         ]
           .map(esc)
           .join(";"),

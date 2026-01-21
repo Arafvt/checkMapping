@@ -142,8 +142,8 @@ export default function ReportTable({ rows, reasonStats, onUpdateRow }) {
           onChange={(e) => setFilter(e.target.value)}
         >
           <option value="all">Все</option>
-          <option value="fail">Только FAIL</option>
-          <option value="ok">Только OK</option>
+          <option value="fail">Только FALSE</option>
+          <option value="ok">Только TRUE</option>
           <option value="feature_ok">Feature OK</option>
           <option value="strict_ok">Strict OK</option>
           <option value="no_match">Без мапа</option>
