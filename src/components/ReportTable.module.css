@@ -1,0 +1,188 @@
+.wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search {
+  flex: 1;
+  min-width: 280px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.14);
+}
+
+.select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.14);
+}
+
+.topReasons {
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+
+.topReasonsTitle {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.topReasonsGrid {
+  display: grid;
+  gap: 6px;
+}
+
+.reasonRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.count {
+  font-weight: 700;
+}
+
+.tableWrap {
+  overflow: auto;
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th, .table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  vertical-align: top;
+  background: white;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  background: #ffffff;
+}
+
+.table tr:hover td {
+  background: #fbfbff;
+}
+
+.pill {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.14);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ok {
+  background: #eaffea;
+  border-color: #b9e5b9;
+}
+
+.fail {
+  background: #ffecec;
+  border-color: #f3b5b5;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.limitRow {
+  padding: 10px;
+  color: rgba(0,0,0,.65);
+  background: #fafafa;
+}
+
+.footer {
+  color: rgba(0,0,0,.65);
+  font-size: 13px;
+}
+
+.pagerBar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pagerBarBottom {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.pagerInfo {
+  color: rgba(0,0,0,.65);
+  font-size: 13px;
+}
+
+.pager {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pagerBtn {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.14);
+  background: white;
+  cursor: pointer;
+}
+
+.pagerBtn:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.pageNums {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pageBtn {
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.14);
+  background: white;
+  cursor: pointer;
+  min-width: 38px;
+}
+
+.pageBtnActive {
+  background: #0b5cff;
+  color: white;
+  border-color: rgba(11,92,255,.35);
+}
+
+.dots {
+  padding: 0 6px;
+  color: rgba(0,0,0,.55);
+}
+
+.clickableRow {
+  cursor: pointer;
+}
