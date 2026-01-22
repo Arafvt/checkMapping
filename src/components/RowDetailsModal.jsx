@@ -20,8 +20,8 @@ function sectionTitle(text) {
 function reasonText(reason) {
   const map = {
     BEST_MATCH_NO_MATCH:
-      "best_match=no_match (маппинг не найден / не назначен)",
-    NO_MATCH_TITLE: "matched_csv_title пустой (сравнивать не с чем)",
+      "маппинг не найден / не назначен",
+    NO_MATCH_TITLE: "сравнивать не с чем",
     VOLUME_MISSING_ONE_SIDE: "Объём/вес найден только с одной стороны",
     VOLUME_MISMATCH: "Объём/вес не совпал",
     PERCENT_MISSING_ONE_SIDE: "Процент найден только с одной стороны",
@@ -35,6 +35,10 @@ function reasonText(reason) {
       "Модификаторы (zero/без сахара/light/безлактозный/…) не совпали",
     CANONICAL_KEY_DIFF:
       "Ключевые слова (canonical key) различаются при совпавших фичах",
+    LENGTH_MISSING_ONE_SIDE: "Длина указана только с одной стороны",
+    LENGTH_MISMATCH: "Длина (метры) не совпадает",
+    COUNT_MISSING_ONE_SIDE: "Количество (шт) указано только с одной стороны",
+    COUNT_MISMATCH: "Количество (шт) не совпадает",
     MANUAL_OK: "Подтверждено вручную (override)",
   };
   return map[reason] || reason;
@@ -105,7 +109,7 @@ export default function RowDetailsModal({ row, onClose, onUpdateRow }) {
 
     const nextManual = !row.manual_ok;
 
-    const nextOk = nextManual ? true : row.strict_ok; // если сняли ручное подтверждение — вернём strict_ok
+    const nextOk = nextManual ? true : row.strict_ok;
     const nextReasonsArr = new Set(
       row.__reasonsArr ||
         String(row.reasons || "")

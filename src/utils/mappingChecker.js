@@ -49,7 +49,7 @@ function tokenize(s) {
     .replace(/(\d),(\d)/g, "$1.$2");
   t = t
     .replace(/(\d+(?:[.,]\d+)?)([a-zа-я]+)/gi, "$1 $2")
-    .replace(/([a-zа-я]+)(\d+(?:[.,]\d+)?)/gi, "$1 $2"); 
+    .replace(/([a-zа-я]+)(\d+(?:[.,]\d+)?)/gi, "$1 $2");
 
   // Нормализация "число + единица" -> "число <каноническая_единица>"
   t = t
@@ -58,7 +58,10 @@ function tokenize(s) {
     .replace(/(\d+(?:[.,]\d+)?)\s*(кг|kg)\b/gi, "$1 кг")
     .replace(/(\d+(?:[.,]\d+)?)\s*(г|гр|грамм|грамма|граммов|g|gram)\b/gi, "$1 г")
     .replace(/(\d+(?:[.,]\d+)?)\s*(%|процента|процентов)\b/gi, "$1 %")
-    .replace(/(\d+(?:[.,]\d+)?)\s*(шт|штук|pcs|piece)\b/gi, "$1 шт");
+    .replace(/(\d+(?:[.,]\d+)?)\s*(шт|штук|pcs|piece)\b/gi, "$1 шт")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(м|метр|метра|метров|meter|meters)\b/gi, "$1 м")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(см|сантиметр|сантиметра|сантиметров|cm)\b/gi, "$1 см")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(мм|миллиметр|миллиметра|миллиметров|mm)\b/gi, "$1 мм");
 
   // Сохраняем десятичные точки
   t = t.replace(/(\d)\.(\d)/g, "$1__DOT__$2");
@@ -81,11 +84,62 @@ function canonicalKey(text) {
     .filter(t => !DROP_TOKENS.has(t))
     .filter(t => !/^\d+(\.\d+)?$/.test(t))
     .filter(t => !/^\d+%$/.test(t))
-    .filter(t => !/^\d+(\.\d+)?(г|гр|кг|мл|л|шт|%)$/.test(t));
+    .filter(t => !/^\d+(\.\d+)?(г|гр|кг|мл|л|шт|%|м|см|мм)$/.test(t));
 
   return toks.sort().join(" ");
 }
 
+function extractCount(text) {
+  const raw = String(text ?? "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[\u00A0\u202F]/g, " ")
+    .trim();
+
+  const m = raw.match(/(?:^|[^0-9])(\d+(?:[.,]\d+)?)\s*(шт|штук|pcs|piece)\b/i);
+  if (!m) return null;
+
+  const v = parseFloat(String(m[1]).replace(",", "."));
+  if (Number.isNaN(v)) return null;
+
+  return Math.round(v);
+}
+
+function extractLength(text) {
+  const raw = String(text ?? "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[\u00A0\u202F]/g, " ")
+    .trim();
+
+  const toNum = (x) => {
+    const v = parseFloat(String(x).replace(",", "."));
+    return Number.isNaN(v) ? null : v;
+  };
+
+  // мм
+  let m = raw.match(/(?:^|[^0-9])(\d+(?:[.,]\d+)?)\s*(мм|millimeter|millimeters)(?=$|[^a-zа-я])/i);
+  if (m) {
+    const v = toNum(m[1]);
+    return v === null ? null : Math.round(v);
+  }
+
+  // см -> мм
+  m = raw.match(/(?:^|[^0-9])(\d+(?:[.,]\d+)?)\s*(см|сантиметр|сантиметра|сантиметров|centimeter|centimeters)(?=$|[^a-zа-я])/i);
+  if (m) {
+    const v = toNum(m[1]);
+    return v === null ? null : Math.round(v * 10);
+  }
+
+  // м/метр/метра/метров -> мм
+  m = raw.match(/(?:^|[^0-9])(\d+(?:[.,]\d+)?)\s*(м|метр|метра|метров|meter|meters)(?=$|[^a-zа-я])/i);
+  if (m) {
+    const v = toNum(m[1]);
+    return v === null ? null : Math.round(v * 1000);
+  }
+
+  return null;
+}
 
 function extractVolumeOrWeight(text) {
   const raw = String(text ?? "")
@@ -162,6 +216,8 @@ function getProductType(text) {
   if (/\b(ml|мл)\b/.test(s)) return "volume";
   if (/\b(шт|штук|pcs|piece)\b/.test(s)) return "pcs";
   if (/\b(уп|упак|pack|упаковк)\b/.test(s)) return "pack";
+  if (/\b(мм|миллиметр|миллиметра|миллиметров|mm|см|сантиметр|сантиметра|сантиметров|cm|м|метр|метра|метров|meter|meters)\b/.test(s))
+    return "length";
 
   return "unknown";
 }
@@ -184,6 +240,8 @@ function buildDetails(sourceName, targetName, srcProductType, tgtProductType) {
       modifiers: extractModifiers(sourceName),
       canonicalKey: canonicalKey(sourceName),
       tokens: tokenize(sourceName),
+      count: extractCount(sourceName),
+      lengthMm: extractLength(sourceName),
     },
     target: {
       title: targetName ?? "",
@@ -196,6 +254,8 @@ function buildDetails(sourceName, targetName, srcProductType, tgtProductType) {
       modifiers: extractModifiers(targetName),
       canonicalKey: canonicalKey(targetName),
       tokens: tokenize(targetName),
+      count: extractCount(targetName),
+      lengthMm: extractLength(targetName),
     },
     tokenJaccard: 0,
   };
@@ -268,7 +328,7 @@ export function checkMapping(sourceName, targetName, config = DEFAULT_CONFIG) {
 
     const srcKey = details.source.canonicalKey;
     const tgtKey = details.target.canonicalKey;
-    const strict_ok = false; 
+    const strict_ok = false;
 
     return { feature_ok, strict_ok, reasons, tokenJaccard: jac, details };
   }
@@ -285,6 +345,33 @@ export function checkMapping(sourceName, targetName, config = DEFAULT_CONFIG) {
       feature_ok = false;
     }
   }
+
+  // Проверка длины (м/см/мм)
+  const srcLen = details.source.lengthMm;
+  const tgtLen = details.target.lengthMm;
+  if (srcLen !== null || tgtLen !== null) {
+    if (srcLen === null || tgtLen === null) {
+      reasons.push("LENGTH_MISSING_ONE_SIDE");
+      feature_ok = false;
+    } else if (srcLen !== tgtLen) {
+      reasons.push("LENGTH_MISMATCH");
+      feature_ok = false;
+    }
+  }
+
+  // Проверка количества (шт)
+  const srcCount = details.source.count;
+  const tgtCount = details.target.count;
+  if (srcCount !== null || tgtCount !== null) {
+    if (srcCount === null || tgtCount === null) {
+      reasons.push("COUNT_MISSING_ONE_SIDE");
+      feature_ok = false;
+    } else if (srcCount !== tgtCount) {
+      reasons.push("COUNT_MISMATCH");
+      feature_ok = false;
+    }
+  }
+
 
   // Проверка unitOnly
   const srcU = details.source.unitOnly;
@@ -436,5 +523,9 @@ export const REASON_LABELS = {
   FLAVOR_MISSING_ONE_SIDE: "Вкус указан лишь у одной стороны",
   FLAVOR_MISMATCH: "Вкус не совпадает",
   MODIFIER_MISMATCH: "Модификаторы (без сахара/zero/…) не совпадают",
+  LENGTH_MISSING_ONE_SIDE: "Длина указана только с одной стороны",
+  LENGTH_MISMATCH: "Длина (метры) не совпадает",
+  COUNT_MISSING_ONE_SIDE: "Количество (шт) указано только с одной стороны",
+  COUNT_MISMATCH: "Количество (шт) не совпадает",
   MANUAL_OK: "Подтверждено вручную",
 };

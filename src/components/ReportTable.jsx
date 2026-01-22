@@ -1,4 +1,3 @@
-// src/components/ReportTable.jsx
 import { useMemo, useState, useEffect } from "react";
 import styles from "./ReportTable.module.css";
 import RowDetailsModal from "./RowDetailsModal.jsx";
