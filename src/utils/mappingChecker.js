@@ -89,20 +89,23 @@ function canonicalKey(text) {
   return toks.sort().join(" ");
 }
 
-function extractCount(text) {
-  const raw = String(text ?? "")
+function prepUnits(text) {
+  return String(text ?? "")
     .toLowerCase()
     .replace(/ё/g, "е")
     .replace(/[\u00A0\u202F]/g, " ")
+    .replace(/(\d+(?:[.,]\d+)?)([a-zа-я]+)/gi, "$1 $2")
     .trim();
+}
 
-  const m = raw.match(/(?:^|[^0-9])(\d+(?:[.,]\d+)?)\s*(шт|штук|pcs|piece)\b/i);
+function extractCount(text) {
+  const raw = prepUnits(text);
+
+  const m = raw.match(/(?:^|[^0-9])(\d+(?:[.,]\d+)?)\s*(шт|штук|pcs|piece)(?=$|[^a-zа-я0-9])/i);
   if (!m) return null;
 
   const v = parseFloat(String(m[1]).replace(",", "."));
-  if (Number.isNaN(v)) return null;
-
-  return Math.round(v);
+  return Number.isNaN(v) ? null : Math.round(v);
 }
 
 function extractLength(text) {
@@ -195,29 +198,29 @@ function extractPercent(text) {
 }
 
 function extractUnitOnly(text) {
-  const s = String(text ?? "").toLowerCase().replace(/ё/g, "е");
+  const s = prepUnits(text);
 
-  if (/\bкг\b/.test(s) || /\bkg\b/.test(s)) return "kg_only";
-  if (/\bшт\b/.test(s) || /\bштук\b/.test(s)) return "pcs_only";
-  if (/\bуп\b/.test(s) || /\bупак\b/.test(s) || /\bупаковк/.test(s)) return "pack_only";
+  if (/(^|[^a-zа-я0-9])(кг|kg)(?=$|[^a-zа-я0-9])/.test(s)) return "kg_only";
+  if (/(^|[^a-zа-я0-9])(шт|штук|pcs|piece)(?=$|[^a-zа-я0-9])/.test(s)) return "pcs_only";
+  if (/(^|[^a-zа-я0-9])(уп|упак|упаковк|pack)(?=$|[^a-zа-я0-9])/.test(s)) return "pack_only";
 
   return null;
 }
 
 function getProductType(text) {
   if (!text) return "unknown";
+  const s = prepUnits(text);
 
-  const s = String(text).toLowerCase().replace(/ё/g, "е");
+  if (/(^|[^a-zа-я0-9])(кг|kg)(?=$|[^a-zа-я0-9])/.test(s)) return "weight";
+  if (/(^|[^a-zа-я0-9])(г|гр|грамм|g|gram)(?=$|[^a-zа-я0-9])/.test(s)) return "weight";
 
-  // Проверяем в порядке приоритета
-  if (/\b(кг|kg)\b/.test(s)) return "weight";
-  if (/\b(г|гр|грамм|g)\b/.test(s)) return "weight";
-  if (/\b(литр|л)\b/.test(s)) return "volume";
-  if (/\b(ml|мл)\b/.test(s)) return "volume";
-  if (/\b(шт|штук|pcs|piece)\b/.test(s)) return "pcs";
-  if (/\b(уп|упак|pack|упаковк)\b/.test(s)) return "pack";
-  if (/\b(мм|миллиметр|миллиметра|миллиметров|mm|см|сантиметр|сантиметра|сантиметров|cm|м|метр|метра|метров|meter|meters)\b/.test(s))
-    return "length";
+  if (/(^|[^a-zа-я0-9])(литр|л|l)(?=$|[^a-zа-я0-9])/.test(s)) return "volume";
+  if (/(^|[^a-zа-я0-9])(мл|ml)(?=$|[^a-zа-я0-9])/.test(s)) return "volume";
+
+  if (/(^|[^a-zа-я0-9])(мм|см|м|метр|метра|метров|meter|meters)(?=$|[^a-zа-я0-9])/.test(s)) return "length";
+
+  if (/(^|[^a-zа-я0-9])(шт|штук|pcs|piece)(?=$|[^a-zа-я0-9])/.test(s)) return "pcs";
+  if (/(^|[^a-zа-я0-9])(уп|упак|упаковк|pack)(?=$|[^a-zа-я0-9])/.test(s)) return "pack";
 
   return "unknown";
 }

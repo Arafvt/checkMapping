@@ -8,6 +8,11 @@ function prettyVol(v) {
   return `${v.value}`;
 }
 
+function prettyCount(v) {
+  if (v === null || v === undefined) return "—";
+  return String(v);
+}
+
 function prettyMods(arr) {
   if (!arr || arr.length === 0) return "—";
   return arr.join(", ");
@@ -19,8 +24,7 @@ function sectionTitle(text) {
 
 function reasonText(reason) {
   const map = {
-    BEST_MATCH_NO_MATCH:
-      "маппинг не найден / не назначен",
+    BEST_MATCH_NO_MATCH: "маппинг не найден / не назначен",
     NO_MATCH_TITLE: "сравнивать не с чем",
     VOLUME_MISSING_ONE_SIDE: "Объём/вес найден только с одной стороны",
     VOLUME_MISMATCH: "Объём/вес не совпал",
@@ -88,6 +92,10 @@ export default function RowDetailsModal({ row, onClose, onUpdateRow }) {
       !tgt?.volumeOrWeight ||
       src.volumeOrWeight.kind !== tgt.volumeOrWeight.kind ||
       src.volumeOrWeight.value !== tgt.volumeOrWeight.value);
+
+  const countMismatch =
+    (src?.count !== null || tgt?.count !== null) &&
+    (src?.count === null || tgt?.count === null || src.count !== tgt.count);
 
   const pctMismatch =
     (src?.percent !== null || tgt?.percent !== null) &&
@@ -239,6 +247,13 @@ export default function RowDetailsModal({ row, onClose, onUpdateRow }) {
                 {prettyVol(src?.volumeOrWeight)}
               </span>
 
+              <span className={styles.k}>Количество (шт)</span>
+              <span
+                className={`${styles.v} ${countMismatch ? styles.bad : ""}`}
+              >
+                {prettyCount(src?.count)}
+              </span>
+
               <span className={styles.k}>Процент</span>
               <span className={`${styles.v} ${pctMismatch ? styles.bad : ""}`}>
                 {src?.percent ?? "—"}
@@ -275,6 +290,13 @@ export default function RowDetailsModal({ row, onClose, onUpdateRow }) {
               <span className={styles.k}>Объём/вес</span>
               <span className={`${styles.v} ${volMismatch ? styles.bad : ""}`}>
                 {prettyVol(tgt?.volumeOrWeight)}
+              </span>
+
+              <span className={styles.k}>Количество (шт)</span>
+              <span
+                className={`${styles.v} ${countMismatch ? styles.bad : ""}`}
+              >
+                {prettyCount(tgt?.count)}
               </span>
 
               <span className={styles.k}>Процент</span>
